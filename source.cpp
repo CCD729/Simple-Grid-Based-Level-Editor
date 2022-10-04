@@ -51,13 +51,13 @@ void handleInput(RenderWindow& window, Event& e) {
     if (Mouse::isButtonPressed(Mouse::Left)) {
     }
     if (e.type == sf::Event::KeyReleased) {
-        if (e.key.code == sf::Keyboard::S)
+        if (e.key.code == sf::Keyboard::F2)
         {
             saveRelease = true;
         }
     }
-    // Ctrl+S saves a screenshot
-    if (saveRelease && sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+    // F2 key saves a screenshot
+    if (saveRelease && sf::Keyboard::isKeyPressed(sf::Keyboard::F2)) {
         saveRelease = false;
         sf::Texture texture;
         texture.create(window.getSize().x, window.getSize().y);
