@@ -17,9 +17,10 @@ using namespace std;
 Image tileset;
 Texture tileTexture;
 Sprite displaySprite;
-vector<Sprite>renderSprites;
+map<Vector2<int>, Sprite>renderSprites;
 int currentLevel[10][12];
 int currentTile = 0;
+Vector2<int>currentPos = {0,0};
 int tileHeight = 70;
 int tileWidth = 70;
 int tilesetRow, tilesetColumn = 0;
@@ -95,7 +96,7 @@ void setup() {
 
     // Setup the sprite for display
     displaySprite.setTexture(tileTexture);
-    displaySprite.setTextureRect(IntRect(currentTile / tilesetColumn * tileWidth, currentTile / tilesetRow * tileHeight, tileWidth, tileHeight));
+    displaySprite.setTextureRect(IntRect(currentTile / tilesetColumn * tileWidth, currentTile * tileHeight, tileWidth, tileHeight));
     displaySprite.setPosition(0, 0);
 }
 
@@ -109,10 +110,31 @@ void handleInput(RenderWindow& window, Event& e) {
     if (Mouse::isButtonPressed(Mouse::Left)) {
         if (currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] != currentTile) {
             currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] = currentTile;
-            Sprite savedSprite = *new Sprite(tileTexture, IntRect(currentTile / tilesetColumn * tileWidth, currentTile / tilesetRow * tileHeight, tileWidth, tileHeight));
+            Sprite savedSprite = *new Sprite(tileTexture, IntRect(currentTile / tilesetColumn * tileWidth, currentTile * tileHeight, tileWidth, tileHeight));
             savedSprite.setPosition(Mouse::getPosition(window).x / tileWidth * tileWidth, Mouse::getPosition(window).y / tileHeight * tileHeight);
-            renderSprites.push_back(savedSprite);
+            currentPos.x = currentTile / tilesetRow;
+            currentPos.y = currentTile % tilesetRow;
+            if (renderSprites.count(currentPos)) {
+                renderSprites.erase(currentPos);
+            }
+            renderSprites.insert({ currentPos, savedSprite });
         }
+    }
+    // Left or Right arrow key changes tile
+    if (Keyboard::isKeyPressed(Keyboard::Left)) {
+        if (currentTile > 0)
+            currentTile--;
+        else
+            currentTile = tilesetColumn * tilesetRow - 1;
+        displaySprite.setTextureRect(IntRect(currentTile / tilesetRow * tileWidth, currentTile%tilesetRow *tileHeight, tileWidth, tileHeight));
+    }
+    else if (Keyboard::isKeyPressed(Keyboard::Right)) {
+        if (currentTile < tilesetColumn * tilesetRow - 1)
+            currentTile++;
+        else
+            currentTile = 0;
+        displaySprite.setTextureRect(IntRect(currentTile / tilesetRow * tileWidth, currentTile%tilesetRow * tileHeight, tileWidth, tileHeight));
+        cout << currentTile / tilesetRow * tileWidth <<" "<< currentTile % tilesetRow * tileHeight << endl;
     }
 
     // Avoid multiple triggers while holding
@@ -127,12 +149,15 @@ void handleInput(RenderWindow& window, Event& e) {
         displaySprite.setPosition(Mouse::getPosition(window).x / tileWidth * tileWidth, Mouse::getPosition(window).y / tileHeight * tileHeight);
     }
 
-    // F2 key saves a screenshot. TODO: Maybe hide current cursor-following tile?
+    // F2 key saves a screenshot.
     if (saveRelease && Keyboard::isKeyPressed(Keyboard::F2)) {
         saveRelease = false;
         Texture texture;
         texture.create(window.getSize().x, window.getSize().y);
+        Uint8 tempAlpha = displaySprite.getColor().a;
+        displaySprite.setColor(Color(displaySprite.getColor().r, displaySprite.getColor().g, displaySprite.getColor().b, Uint8(0)));
         texture.update(window);
+        displaySprite.setColor(Color(displaySprite.getColor().r, displaySprite.getColor().g, displaySprite.getColor().b, tempAlpha));
         if (texture.copyToImage().saveToFile("Mylevel.png")) {
             std::cout << "Screenshot saved to Mylevel.png" << std::endl;
         }
@@ -145,8 +170,8 @@ void update(RenderWindow& window) {
 // What to render on screen
 void render(RenderWindow& window) {
     window.clear();
-    for (unsigned int i = 0; i < renderSprites.size(); i++) {
-        window.draw(renderSprites[i]);
+    for (auto const& s : renderSprites){
+        window.draw(s.second);
     }
     window.draw(displaySprite);
     window.display();
