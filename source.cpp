@@ -7,6 +7,7 @@
 #include <SFML/Main.hpp>
 #include <iostream>
 #include <vector>
+#include <map>
 
 // Namespaces
 using namespace sf;
@@ -17,10 +18,10 @@ using namespace std;
 Image tileset;
 Texture tileTexture;
 Sprite displaySprite;
-map<Vector2<int>, Sprite>renderSprites;
+map<int, Sprite>renderSprites;
 int currentLevel[10][12];
 int currentTile = 0;
-Vector2<int>currentPos = {0,0};
+Vector2i currentPos = {0,0};
 int tileHeight = 70;
 int tileWidth = 70;
 int tilesetRow, tilesetColumn = 0;
@@ -106,18 +107,30 @@ void handleInput(RenderWindow& window, Event& e) {
     if (e.type == Event::Closed)
         window.close();
 
-    // Mouse Click puts a sprite into the map
+    // Left Mouse Click puts a sprite into the map
     if (Mouse::isButtonPressed(Mouse::Left)) {
         if (currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] != currentTile) {
             currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] = currentTile;
-            Sprite savedSprite = *new Sprite(tileTexture, IntRect(currentTile / tilesetColumn * tileWidth, currentTile * tileHeight, tileWidth, tileHeight));
+            Sprite savedSprite = *new Sprite(tileTexture, IntRect(currentTile / tilesetRow * tileWidth, currentTile%tilesetRow * tileHeight, tileWidth, tileHeight));
             savedSprite.setPosition(Mouse::getPosition(window).x / tileWidth * tileWidth, Mouse::getPosition(window).y / tileHeight * tileHeight);
-            currentPos.x = currentTile / tilesetRow;
-            currentPos.y = currentTile % tilesetRow;
-            if (renderSprites.count(currentPos)) {
-                renderSprites.erase(currentPos);
+            currentPos.x = Mouse::getPosition(window).x / tileWidth;
+            currentPos.y = Mouse::getPosition(window).y / tileHeight;
+            // Store location data to do garbage collection while replacing vectors
+            if (renderSprites.count(currentPos.x * 10 + currentPos.y)) {
+                renderSprites.erase(currentPos.x * 10 + currentPos.y);
             }
-            renderSprites.insert({ currentPos, savedSprite });
+            renderSprites.insert({ currentPos.x * 10 + currentPos.y, savedSprite });
+        }
+    }
+    // Right Mouse Click erases a sprite
+    else if (Mouse::isButtonPressed(Mouse::Right)) {
+        if (currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] != -1) {
+            currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] = -1;
+            currentPos.x = Mouse::getPosition(window).x / tileWidth;
+            currentPos.y = Mouse::getPosition(window).y / tileHeight;
+            if (renderSprites.count(currentPos.x * 10 + currentPos.y)) {
+                renderSprites.erase(currentPos.x * 10 + currentPos.y);
+            }
         }
     }
     // Left or Right arrow key changes tile
