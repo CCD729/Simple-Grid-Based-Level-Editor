@@ -7,7 +7,9 @@
 #include <SFML/Main.hpp>
 #include <iostream>
 #include <fstream>
+#include<sstream>
 #include <map>
+
 
 // Namespaces
 using namespace sf;
@@ -36,6 +38,7 @@ void setup();
 void handleInput(RenderWindow& window, Event& e);
 void update(RenderWindow& window);
 void render(RenderWindow& window);
+int LineToIntArrayParser(string s, int i, int buffer[10][12], bool goodParse);
 
 int main()
 {
@@ -79,13 +82,13 @@ void setup() {
 
     // Load a texture tile set
     if (!tileTexture.loadFromFile("Tileset\\Platformer-Tileset-70x70.png")) {
-        std::cerr << "Error: Failed to load tile set";
+        cerr << "Error: Failed to load tile set";
         exit(-1);
     }
 
     // Determine dimension of texture
     if (tileTexture.getSize().x % tileWidth != 0 || tileTexture.getSize().y % tileHeight != 0) {
-        std::cerr << "Error: Tileset size not divisible by tile Size";
+        cerr << "Error: Tileset size not divisible by tile Size";
         exit(-1);
     }
     else {
@@ -120,7 +123,7 @@ void handleInput(RenderWindow& window, Event& e) {
             if (currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] != currentTile) {
                 currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] = currentTile;
                 Sprite savedSprite = *new Sprite(tileTexture, IntRect(currentTile / tilesetRow * tileWidth, currentTile % tilesetRow * tileHeight, tileWidth, tileHeight));
-                savedSprite.setPosition(Mouse::getPosition(window).x / tileWidth * tileWidth, Mouse::getPosition(window).y / tileHeight * tileHeight);
+                savedSprite.setPosition(float(Mouse::getPosition(window).x / tileWidth * tileWidth), float(Mouse::getPosition(window).y / tileHeight * tileHeight));
                 // Store location data to do garbage collection while replacing vectors
                 if (renderSprites.count(currentPos.x * 10 + currentPos.y)) {
                     renderSprites.erase(currentPos.x * 10 + currentPos.y);
@@ -155,31 +158,70 @@ void handleInput(RenderWindow& window, Event& e) {
         texture.update(window);
         displaySprite.setColor(Color(displaySprite.getColor().r, displaySprite.getColor().g, displaySprite.getColor().b, tempAlpha));
         if (texture.copyToImage().saveToFile("Mylevel.png")) {
-            cout << "Screenshot saved to Mylevel.png" << std::endl;
+            cout << "Screenshot saved to Mylevel.png" << endl;
         }
     }
 
     // S key saves level to a txt file
     else if (levelSaveRelease && Keyboard::isKeyPressed(Keyboard::S)) {
         levelSaveRelease = false;
-        ofstream levelout;
-        levelout.open("level.txt", ofstream::out | ofstream::trunc);
+        ofstream levelOut;
+        levelOut.open("level.txt", ofstream::out | ofstream::trunc);
         for (unsigned int i = 0; i < 10; i++) {
             for (unsigned int j = 0; j < 12; j++) {
-                levelout << currentLevel[i][j];
+                levelOut << currentLevel[i][j];
                 if (j < 11)
-                    levelout << " ";
+                    levelOut << " ";
             }
             if(i<9)
-                levelout << endl;
+                levelOut << endl;
         }
-        
-        cout << "Level saved to level.txt" << std::endl;
+        cout << "Level saved to level.txt" << endl;
     }
     
     // L key loads level from a txt file
-    else if (levelSaveRelease && Keyboard::isKeyPressed(Keyboard::L)) {
-
+    else if (levelLoadRelease && Keyboard::isKeyPressed(Keyboard::L)) {
+        levelLoadRelease = false;
+        ifstream levelIn("level.txt");
+        if (!levelIn) {
+            cerr << "Error: Failed to load level.txt"<<endl;
+        }
+        else {
+            unsigned int i = 0;
+            auto buffer = new int[10][12]();
+            bool successParse = true;
+            for (string line; getline(levelIn, line); i++) {
+                if (LineToIntArrayParser(line, i, buffer, successParse) == -1) {
+                    delete[] buffer;
+                    break;
+                }
+            }
+            // No error parsing file
+            if (successParse) {
+                // Initialize Level
+                for (unsigned int i = 0; i < 10; i++) {
+                    for (unsigned int j = 0; j < 12; j++) {
+                        currentLevel[i][j] = buffer[i][j];
+                        // Replace & add level tiles
+                        if (currentLevel[i][j] != -1) {
+                            Sprite savedSprite = *new Sprite(tileTexture, IntRect(currentLevel[i][j] / tilesetRow * tileWidth, currentLevel[i][j] % tilesetRow * tileHeight, tileWidth, tileHeight));
+                            savedSprite.setPosition(float(j * tileWidth), float(i * tileHeight));
+                            // Store location data to do garbage collection while replacing vectors
+                            if (renderSprites.count(j * 10 + i)) {
+                                renderSprites.erase(j * 10 + i);
+                            }
+                            renderSprites.insert({ j * 10 + i, savedSprite });
+                        }
+                        else {
+                            if (renderSprites.count(j * 10 + i)) {
+                                renderSprites.erase(j * 10 + i);
+                            }
+                        }
+                    }
+                }
+                cout << "Level loaded from level.txt" << endl;
+            }
+        }
     }
 
     // Left or Right arrow key changes tile
@@ -216,7 +258,7 @@ void handleInput(RenderWindow& window, Event& e) {
     }
     // Display current tile location following mouse
     if (e.type == Event::MouseMoved) {
-        displaySprite.setPosition(Mouse::getPosition(window).x / tileWidth * tileWidth, Mouse::getPosition(window).y / tileHeight * tileHeight);
+        displaySprite.setPosition(float(Mouse::getPosition(window).x / tileWidth * tileWidth), float(Mouse::getPosition(window).y / tileHeight * tileHeight));
     }
 }
 // What happens in the game frame
@@ -232,3 +274,20 @@ void render(RenderWindow& window) {
     window.draw(displaySprite);
     window.display();
 }
+
+// Level file Input parser
+int LineToIntArrayParser(string s, int row, int buffer[10][12], bool goodParse) {
+    stringstream ss(s);
+    try {
+        for (unsigned int j = 0; j < 12; j++) {
+            ss >> buffer[row][j];
+        }
+    }
+    catch(...) {
+        cerr<<"Error: level.txt content format wrong! Loading failed."<< endl;
+        goodParse = false;
+        return -1;
+    }
+    return 0;
+}
+
