@@ -155,13 +155,26 @@ void handleInput(RenderWindow& window, Event& e) {
         texture.update(window);
         displaySprite.setColor(Color(displaySprite.getColor().r, displaySprite.getColor().g, displaySprite.getColor().b, tempAlpha));
         if (texture.copyToImage().saveToFile("Mylevel.png")) {
-            std::cout << "Screenshot saved to Mylevel.png" << std::endl;
+            cout << "Screenshot saved to Mylevel.png" << std::endl;
         }
     }
 
     // S key saves level to a txt file
     else if (levelSaveRelease && Keyboard::isKeyPressed(Keyboard::S)) {
-
+        levelSaveRelease = false;
+        ofstream levelout;
+        levelout.open("level.txt", ofstream::out | ofstream::trunc);
+        for (unsigned int i = 0; i < 10; i++) {
+            for (unsigned int j = 0; j < 12; j++) {
+                levelout << currentLevel[i][j];
+                if (j < 11)
+                    levelout << " ";
+            }
+            if(i<9)
+                levelout << endl;
+        }
+        
+        cout << "Level saved to level.txt" << std::endl;
     }
     
     // L key loads level from a txt file
