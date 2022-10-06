@@ -6,7 +6,7 @@
 #include <SFML/OpenGL.hpp>
 #include <SFML/Main.hpp>
 #include <iostream>
-#include <vector>
+#include <fstream>
 #include <map>
 
 // Namespaces
@@ -25,7 +25,11 @@ Vector2i currentPos = {0,0};
 int tileHeight = 70;
 int tileWidth = 70;
 int tilesetRow, tilesetColumn = 0;
-bool saveRelease = true;
+bool saveShotRelease = true;
+bool levelSaveRelease = true;
+bool levelLoadRelease = true;
+bool addDone = true;
+bool removeDone = true;
 
 // Prototypes
 void setup();
@@ -108,63 +112,42 @@ void handleInput(RenderWindow& window, Event& e) {
         window.close();
 
     // Left Mouse Click puts a sprite into the map
-    if (Mouse::isButtonPressed(Mouse::Left)) {
-        if (currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] != currentTile) {
-            currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] = currentTile;
-            Sprite savedSprite = *new Sprite(tileTexture, IntRect(currentTile / tilesetRow * tileWidth, currentTile%tilesetRow * tileHeight, tileWidth, tileHeight));
-            savedSprite.setPosition(Mouse::getPosition(window).x / tileWidth * tileWidth, Mouse::getPosition(window).y / tileHeight * tileHeight);
-            currentPos.x = Mouse::getPosition(window).x / tileWidth;
-            currentPos.y = Mouse::getPosition(window).y / tileHeight;
-            // Store location data to do garbage collection while replacing vectors
-            if (renderSprites.count(currentPos.x * 10 + currentPos.y)) {
-                renderSprites.erase(currentPos.x * 10 + currentPos.y);
+    if (addDone && Mouse::isButtonPressed(Mouse::Left)) {
+        addDone = false;
+        currentPos.x = Mouse::getPosition(window).x / tileWidth;
+        currentPos.y = Mouse::getPosition(window).y / tileHeight;
+        if (0 <= (currentPos.x * 10 + currentPos.y) && (currentPos.x * 10 + currentPos.y) <= 119) {
+            if (currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] != currentTile) {
+                currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] = currentTile;
+                Sprite savedSprite = *new Sprite(tileTexture, IntRect(currentTile / tilesetRow * tileWidth, currentTile % tilesetRow * tileHeight, tileWidth, tileHeight));
+                savedSprite.setPosition(Mouse::getPosition(window).x / tileWidth * tileWidth, Mouse::getPosition(window).y / tileHeight * tileHeight);
+                // Store location data to do garbage collection while replacing vectors
+                if (renderSprites.count(currentPos.x * 10 + currentPos.y)) {
+                    renderSprites.erase(currentPos.x * 10 + currentPos.y);
+                }
+                renderSprites.insert({ currentPos.x * 10 + currentPos.y, savedSprite });
             }
-            renderSprites.insert({ currentPos.x * 10 + currentPos.y, savedSprite });
         }
+        addDone = true;
     }
     // Right Mouse Click erases a sprite
-    else if (Mouse::isButtonPressed(Mouse::Right)) {
-        if (currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] != -1) {
-            currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] = -1;
-            currentPos.x = Mouse::getPosition(window).x / tileWidth;
-            currentPos.y = Mouse::getPosition(window).y / tileHeight;
-            if (renderSprites.count(currentPos.x * 10 + currentPos.y)) {
-                renderSprites.erase(currentPos.x * 10 + currentPos.y);
+    else if (removeDone && Mouse::isButtonPressed(Mouse::Right)) {
+        removeDone = false;
+        currentPos.x = Mouse::getPosition(window).x / tileWidth;
+        currentPos.y = Mouse::getPosition(window).y / tileHeight;
+        if (0 <= (currentPos.x * 10 + currentPos.y) && (currentPos.x * 10 + currentPos.y) <= 119) {
+            if (currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] != -1) {
+                currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] = -1;
+                if (renderSprites.count(currentPos.x * 10 + currentPos.y)) {
+                    renderSprites.erase(currentPos.x * 10 + currentPos.y);
+                }
             }
         }
+        removeDone = true;
     }
-    // Left or Right arrow key changes tile
-    if (Keyboard::isKeyPressed(Keyboard::Left)) {
-        if (currentTile > 0)
-            currentTile--;
-        else
-            currentTile = tilesetColumn * tilesetRow - 1;
-        displaySprite.setTextureRect(IntRect(currentTile / tilesetRow * tileWidth, currentTile%tilesetRow *tileHeight, tileWidth, tileHeight));
-    }
-    else if (Keyboard::isKeyPressed(Keyboard::Right)) {
-        if (currentTile < tilesetColumn * tilesetRow - 1)
-            currentTile++;
-        else
-            currentTile = 0;
-        displaySprite.setTextureRect(IntRect(currentTile / tilesetRow * tileWidth, currentTile%tilesetRow * tileHeight, tileWidth, tileHeight));
-        cout << currentTile / tilesetRow * tileWidth <<" "<< currentTile % tilesetRow * tileHeight << endl;
-    }
-
-    // Avoid multiple triggers while holding
-    if (e.type == Event::KeyReleased) {
-        if (e.key.code == Keyboard::F2)
-        {
-            saveRelease = true;
-        }
-    }
-    // Display current tile location following mouse
-    else if (e.type == Event::MouseMoved) {
-        displaySprite.setPosition(Mouse::getPosition(window).x / tileWidth * tileWidth, Mouse::getPosition(window).y / tileHeight * tileHeight);
-    }
-
     // F2 key saves a screenshot.
-    if (saveRelease && Keyboard::isKeyPressed(Keyboard::F2)) {
-        saveRelease = false;
+    else if (saveShotRelease && Keyboard::isKeyPressed(Keyboard::F2)) {
+        saveShotRelease = false;
         Texture texture;
         texture.create(window.getSize().x, window.getSize().y);
         Uint8 tempAlpha = displaySprite.getColor().a;
@@ -174,6 +157,53 @@ void handleInput(RenderWindow& window, Event& e) {
         if (texture.copyToImage().saveToFile("Mylevel.png")) {
             std::cout << "Screenshot saved to Mylevel.png" << std::endl;
         }
+    }
+
+    // S key saves level to a txt file
+    else if (levelSaveRelease && Keyboard::isKeyPressed(Keyboard::S)) {
+
+    }
+    
+    // L key loads level from a txt file
+    else if (levelSaveRelease && Keyboard::isKeyPressed(Keyboard::L)) {
+
+    }
+
+    // Left or Right arrow key changes tile
+    else if (Keyboard::isKeyPressed(Keyboard::Left)) {
+        if (currentTile > 0)
+            currentTile--;
+        else
+            currentTile = tilesetColumn * tilesetRow - 1;
+        displaySprite.setTextureRect(IntRect(currentTile / tilesetRow * tileWidth, currentTile % tilesetRow * tileHeight, tileWidth, tileHeight));
+    }
+    else if (Keyboard::isKeyPressed(Keyboard::Right)) {
+        if (currentTile < tilesetColumn * tilesetRow - 1)
+            currentTile++;
+        else
+            currentTile = 0;
+        displaySprite.setTextureRect(IntRect(currentTile / tilesetRow * tileWidth, currentTile % tilesetRow * tileHeight, tileWidth, tileHeight));
+        //cout << currentTile / tilesetRow * tileWidth << " " << currentTile % tilesetRow * tileHeight << endl;
+    }
+
+    // Avoid multiple triggers while holding
+    if (e.type == Event::KeyReleased) {
+        if (e.key.code == Keyboard::F2)
+        {
+            saveShotRelease = true;
+        }
+        else if (e.key.code == Keyboard::S)
+        {
+            levelSaveRelease = true;
+        }
+        else if (e.key.code == Keyboard::L)
+        {
+            levelLoadRelease = true;
+        }
+    }
+    // Display current tile location following mouse
+    if (e.type == Event::MouseMoved) {
+        displaySprite.setPosition(Mouse::getPosition(window).x / tileWidth * tileWidth, Mouse::getPosition(window).y / tileHeight * tileHeight);
     }
 }
 // What happens in the game frame
