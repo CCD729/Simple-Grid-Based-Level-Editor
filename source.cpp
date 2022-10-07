@@ -20,7 +20,7 @@ using namespace std;
 Image tileset;
 Texture tileTexture;
 Sprite displaySprite;
-map<int, Sprite>renderSprites;
+map<int, Sprite*>renderSprites;
 int currentLevel[10][12];
 int currentTile = 0;
 Vector2i currentPos = {0,0};
@@ -121,14 +121,15 @@ void handleInput(RenderWindow& window, Event& e) {
         currentPos.y = Mouse::getPosition(window).y / tileHeight;
         if (0 <= (currentPos.x * 10 + currentPos.y) && (currentPos.x * 10 + currentPos.y) <= 119) {
             if (currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] != currentTile) {
-                currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] = currentTile;
-                Sprite savedSprite = *new Sprite(tileTexture, IntRect(currentTile / tilesetRow * tileWidth, currentTile % tilesetRow * tileHeight, tileWidth, tileHeight));
-                savedSprite.setPosition(float(Mouse::getPosition(window).x / tileWidth * tileWidth), float(Mouse::getPosition(window).y / tileHeight * tileHeight));
+                Sprite* savedSprite = new Sprite(tileTexture, IntRect(currentTile / tilesetRow * tileWidth, currentTile % tilesetRow * tileHeight, tileWidth, tileHeight));
+                (*savedSprite).setPosition(float(Mouse::getPosition(window).x / tileWidth * tileWidth), float(Mouse::getPosition(window).y / tileHeight * tileHeight));
                 // Store location data to do garbage collection while replacing vectors
                 if (renderSprites.count(currentPos.x * 10 + currentPos.y)) {
+                    delete renderSprites[currentPos.x * 10 + currentPos.y];
                     renderSprites.erase(currentPos.x * 10 + currentPos.y);
                 }
                 renderSprites.insert({ currentPos.x * 10 + currentPos.y, savedSprite });
+                currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] = currentTile;
             }
         }
         addDone = true;
@@ -140,10 +141,11 @@ void handleInput(RenderWindow& window, Event& e) {
         currentPos.y = Mouse::getPosition(window).y / tileHeight;
         if (0 <= (currentPos.x * 10 + currentPos.y) && (currentPos.x * 10 + currentPos.y) <= 119) {
             if (currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] != -1) {
-                currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] = -1;
                 if (renderSprites.count(currentPos.x * 10 + currentPos.y)) {
+                    delete renderSprites[currentPos.x * 10 + currentPos.y];
                     renderSprites.erase(currentPos.x * 10 + currentPos.y);
                 }
+                currentLevel[Mouse::getPosition(window).y / tileHeight][Mouse::getPosition(window).x / tileWidth] = -1;
             }
         }
         removeDone = true;
@@ -204,16 +206,18 @@ void handleInput(RenderWindow& window, Event& e) {
                         currentLevel[i][j] = buffer[i][j];
                         // Replace & add level tiles
                         if (currentLevel[i][j] != -1) {
-                            Sprite savedSprite = *new Sprite(tileTexture, IntRect(currentLevel[i][j] / tilesetRow * tileWidth, currentLevel[i][j] % tilesetRow * tileHeight, tileWidth, tileHeight));
-                            savedSprite.setPosition(float(j * tileWidth), float(i * tileHeight));
+                            Sprite* savedSprite = new Sprite(tileTexture, IntRect(currentLevel[i][j] / tilesetRow * tileWidth, currentLevel[i][j] % tilesetRow * tileHeight, tileWidth, tileHeight));
+                            (*savedSprite).setPosition(float(j * tileWidth), float(i * tileHeight));
                             // Store location data to do garbage collection while replacing vectors
                             if (renderSprites.count(j * 10 + i)) {
+                                delete renderSprites[j * 10 + i];
                                 renderSprites.erase(j * 10 + i);
                             }
                             renderSprites.insert({ j * 10 + i, savedSprite });
                         }
                         else {
                             if (renderSprites.count(j * 10 + i)) {
+                                delete renderSprites[j * 10 + i];
                                 renderSprites.erase(j * 10 + i);
                             }
                         }
@@ -269,7 +273,7 @@ void update(RenderWindow& window) {
 void render(RenderWindow& window) {
     window.clear();
     for (auto const& s : renderSprites){
-        window.draw(s.second);
+        window.draw(*s.second);
     }
     window.draw(displaySprite);
     window.display();
