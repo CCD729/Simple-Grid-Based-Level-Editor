@@ -5,7 +5,7 @@ Thank you for using this simple level editor!
 
 Startup
 ===========
-You will be prompted to enter a path/file in console to load the tileset you prefer. You may replace "\" with "/" or use double slash "\\" in the path for directories.  
+You will be prompted to enter a path/file in console to load the tileset you prefer. You may replace "\\" with "/" or use double slash "\\\\" in the path for directories.  
 Example:  
 `Tileset/Platformer-Tileset-70x70.png`  
 You may use another file in the same folder or add one if you like.  
@@ -33,7 +33,7 @@ Note that while saving, this program could not create a directory for you if you
 
 启动设置
 ===========
-启动本程序时，控制台将会要求你输入一个文件路径以加载你选择的材质。在路径中，你可以使用 "\" 或 "\\" 来替换 "/" 以便程序正确识别。  
+启动本程序时，控制台将会要求你输入一个文件路径以加载你选择的材质。在路径中，你可以使用 "/" 或 "\\\\" 来替换 "\\" 以便程序正确识别。  
 样例：  
 `Tileset/Platformer-Tileset-70x70.png`  
 你可以选择同一个文件夹中的另一个材质文件，或导入你喜爱的材质文件。  
