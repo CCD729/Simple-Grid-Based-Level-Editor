@@ -206,7 +206,7 @@ void handleInput(RenderWindow& window, Event& e) {
         getline(cin, filePath);
         ifstream levelIn(filePath);
         if (!levelIn) {
-            cerr << "Error: Failed to load level.txt"<<endl;
+            cerr << "Error: Failed to load level from txt file"<<endl;
         }
         else {
             unsigned int i = 0;
@@ -308,7 +308,7 @@ int LineToIntArrayParser(string s, int row, int buffer[10][12], bool goodParse) 
         }
     }
     catch(...) {
-        cerr<<"Error: level.txt content format wrong! Loading failed."<< endl;
+        cerr<<"Error: level txt content format wrong! Loading failed."<< endl;
         goodParse = false;
         return -1;
     }
