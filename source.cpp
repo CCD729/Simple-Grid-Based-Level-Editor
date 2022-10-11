@@ -42,14 +42,14 @@ int LineToIntArrayParser(string s, int i, int buffer[10][12], bool goodParse);
 
 int main()
 {
+    // Setup and load assets
+    setup();
+
     // Create the window
     ContextSettings settings;
     settings.antialiasingLevel = 8;
-    RenderWindow window(VideoMode(840, 700), "My Level Editor", Style::Default, settings);
+    RenderWindow window(VideoMode(tileWidth * 12, tileHeight*10), "My Level Editor", Style::Default, settings);
     window.setFramerateLimit(60);
-
-    // Setup and load assets
-    setup();
 
     // Window event and ordered functions
     while (window.isOpen())
@@ -80,9 +80,22 @@ void setup() {
         exit(-1);
     }*/
 
+    // Get file input and load texture tile set
+    cout << "Setup: Please enter the path/file name of the tileset file(Example. \"Tileset/Platformer-Tileset-70x70.png\"):" << endl;
+    string filePath;
+    getline(cin, filePath);
+    cout << "Please provide tile width in positive integer of pixels:" << endl;
+    cin >> tileWidth;
+    cout << "Please provide tile height in positive integer of pixels:" << endl;
+    cin >> tileHeight;
+    if (tileWidth < 1 || tileHeight <1) {
+        cerr << "Error: Invalid input";
+        exit(-1);
+    }
+
     // Load a texture tile set
-    if (!tileTexture.loadFromFile("Tileset\\Platformer-Tileset-70x70.png")) {
-        cerr << "Error: Failed to load tile set";
+    if (!tileTexture.loadFromFile(filePath)) {
+        cerr << "Error: Failed to load tile set file";
         exit(-1);
     }
 
@@ -167,8 +180,11 @@ void handleInput(RenderWindow& window, Event& e) {
     // S key saves level to a txt file
     else if (levelSaveRelease && Keyboard::isKeyPressed(Keyboard::S)) {
         levelSaveRelease = false;
+        cout << "Save: Please enter the path/file name of the level txt file. (Example. \"Saves/level.txt\" or \"myLevel.txt\".) Note that if trying to access a directory that does not exist, no files would be saved:" << endl;
+        string filePath;
+        getline(cin, filePath);
         ofstream levelOut;
-        levelOut.open("level.txt", ofstream::out | ofstream::trunc);
+        levelOut.open(filePath, ofstream::out | ofstream::trunc);
         for (unsigned int i = 0; i < 10; i++) {
             for (unsigned int j = 0; j < 12; j++) {
                 levelOut << currentLevel[i][j];
@@ -178,13 +194,17 @@ void handleInput(RenderWindow& window, Event& e) {
             if(i<9)
                 levelOut << endl;
         }
-        cout << "Level saved to level.txt" << endl;
+        levelOut.close();
+        cout << "Saving level to " << filePath << " if the directory of the file exists." << endl;
     }
     
     // L key loads level from a txt file
     else if (levelLoadRelease && Keyboard::isKeyPressed(Keyboard::L)) {
         levelLoadRelease = false;
-        ifstream levelIn("level.txt");
+        cout << "Load: Please enter the path/file name of the level txt file:" << endl;
+        string filePath;
+        getline(cin, filePath);
+        ifstream levelIn(filePath);
         if (!levelIn) {
             cerr << "Error: Failed to load level.txt"<<endl;
         }
@@ -223,7 +243,7 @@ void handleInput(RenderWindow& window, Event& e) {
                         }
                     }
                 }
-                cout << "Level loaded from level.txt" << endl;
+                cout << "Loading level from " << filePath << endl;
             }
         }
     }
